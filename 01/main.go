@@ -11,7 +11,7 @@ func fuel(mass int) int {
 
 func fuelRequirements(input []int) (int, int) {
 	var (
-		simpleTotal = 0
+		simpleTotal    = 0
 		recursiveTotal = 0
 	)
 

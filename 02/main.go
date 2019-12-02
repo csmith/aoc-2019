@@ -3,31 +3,22 @@ package main
 import (
 	"fmt"
 	"github.com/csmith/aoc-2019/common"
+	"github.com/csmith/aoc-2019/intcode"
 	"sync"
 )
 
-func run(pool sync.Pool, input []int, noun, verb int) int {
-	state := pool.Get().([]int)
-	defer pool.Put(state)
-	copy(state, input)
-	state[1] = noun
-	state[2] = verb
+func run(pool *sync.Pool, input []int, noun, verb int) int {
+	vm := pool.Get().(*intcode.VirtualMachine)
+	defer pool.Put(vm)
 
-	var ip = 0
-	for {
-		var instr = state[ip]
-		if instr == 1 {
-			state[state[ip+3]] = state[state[ip+1]] + state[state[ip+2]]
-		} else if instr == 2 {
-			state[state[ip+3]] = state[state[ip+1]] * state[state[ip+2]]
-		} else if instr == 99 {
-			return state[0]
-		}
-		ip += 4
-	}
+	vm.Reset(input)
+	vm.Memory[1] = noun
+	vm.Memory[2] = verb
+	vm.Run()
+	return vm.Memory[0]
 }
 
-func findOutput(pool sync.Pool, input []int, target int) int {
+func findOutput(pool *sync.Pool, input []int, target int) int {
 	res := make(chan int)
 
 	for n := 0; n < 100; n++ {
@@ -46,9 +37,9 @@ func findOutput(pool sync.Pool, input []int, target int) int {
 func main() {
 	input := common.Atoi(common.ReadCommas("02/input.txt"))
 
-	pool := sync.Pool{
+	pool := &sync.Pool{
 		New: func() interface{} {
-			return make([]int, len(input))
+			return intcode.NewVirtualMachine(make([]int, len(input)))
 		},
 	}
 
