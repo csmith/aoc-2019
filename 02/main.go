@@ -35,7 +35,7 @@ func findOutput(pool *sync.Pool, input []int, target int) int {
 }
 
 func main() {
-	input := common.Atoi(common.ReadCommas("02/input.txt"))
+	input := common.ReadCsvAsInts("02/input.txt")
 
 	pool := &sync.Pool{
 		New: func() interface{} {

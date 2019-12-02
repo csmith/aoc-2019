@@ -7,20 +7,19 @@ import (
 	"unicode/utf8"
 )
 
-// ReadLines reads all lines from the given path and returns them in a slice of strings.
+// ReadFileAsInts reads all lines from the given path and returns them in a slice of ints.
 // If an error occurs, the function will panic.
-func ReadLines(path string) []string {
-	return readWithScanner(path, bufio.ScanLines)
+func ReadFileAsInts(path string) []int {
+	return readIntsWithScanner(path, bufio.ScanLines)
 }
 
-// ReadCommas reads all data from the given path and returns a string slice
-// containing comma-delimited parts. If a
-// If an error occurs, the function will panic.
-func ReadCommas(path string) []string {
-	return readWithScanner(path, scanByCommas)
+// ReadCsvAsInts reads all data from the given path and returns an int slice
+// containing comma-delimited parts.  If an error occurs, the function will panic.
+func ReadCsvAsInts(path string) []int {
+	return readIntsWithScanner(path, scanByCommas)
 }
 
-func readWithScanner(path string, splitFunc bufio.SplitFunc) []string {
+func readIntsWithScanner(path string, splitFunc bufio.SplitFunc) []int {
 	file, err := os.Open(path)
 	if err != nil {
 		panic(err)
@@ -29,11 +28,11 @@ func readWithScanner(path string, splitFunc bufio.SplitFunc) []string {
 		_ = file.Close()
 	}()
 
-	var parts []string
+	var parts []int
 	scanner := bufio.NewScanner(file)
 	scanner.Split(splitFunc)
 	for scanner.Scan() {
-		parts = append(parts, scanner.Text())
+		parts = append(parts, MustAtoi(scanner.Text()))
 	}
 
 	if scanner.Err() != nil {

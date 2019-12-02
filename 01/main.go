@@ -27,7 +27,7 @@ func fuelRequirements(input []int) (int, int) {
 }
 
 func main() {
-	input := common.Atoi(common.ReadLines("01/input.txt"))
+	input := common.ReadFileAsInts("01/input.txt")
 	part1, part2 := fuelRequirements(input)
 	fmt.Println(part1)
 	fmt.Println(part2)
