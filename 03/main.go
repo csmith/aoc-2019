@@ -19,7 +19,7 @@ var directions = map[byte]common.Point{
 // The number of steps is 0 if the point is the origin or if the wire doesn't
 // reach that point.
 func buildMap(origin common.Point, wires []string) map[common.Point][]int64 {
-	points := map[common.Point][]int64{}
+	points := make(map[common.Point][]int64, 1000000)
 
 	for n, wire := range wires {
 		var (
@@ -64,7 +64,7 @@ func combinedSteps(steps []int64) (int64, bool) {
 	return res, true
 }
 
-func main() {
+func traceWires() (int64, int64) {
 	wires := common.ReadFileAsStrings("03/input.txt")
 	origin := common.Point{X: 0, Y: 0}
 	points := buildMap(origin, wires)
@@ -86,6 +86,11 @@ func main() {
 		}
 	}
 
-	fmt.Println(bestDistance)
-	fmt.Println(bestSteps)
+	return bestDistance, bestSteps
+}
+
+func main() {
+	part1, part2 := traceWires()
+	fmt.Println(part1)
+	fmt.Println(part2)
 }
