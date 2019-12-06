@@ -24,11 +24,11 @@ func main() {
 
 	vm := intcode.NewVirtualMachine(memory)
 	vm.Input <- 1
-	vm.Run()
+	go vm.Run()
 	fmt.Println(last(vm.Output))
 
 	vm.Reset(input)
 	vm.Input <- 5
-	vm.Run()
+	go vm.Run()
 	fmt.Println(last(vm.Output))
 }

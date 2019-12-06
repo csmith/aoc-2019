@@ -1,14 +1,10 @@
 package intcode
 
-import (
-	"fmt"
-	"math"
-)
-
 // VirtualMachine is an IntCode virtual machine.
 type VirtualMachine struct {
 	ip      int
-	opcodes map[int]OpcodeFunc
+	modes   uint8
+	opcodes [100]interface{}
 	Memory  []int
 	Halted  bool
 	Input   chan int
@@ -22,9 +18,9 @@ func NewVirtualMachine(memory []int) *VirtualMachine {
 		ip:     0,
 		Memory: memory,
 		Halted: false,
-		Input:  make(chan int, 100),
-		Output: make(chan int, 100),
-		opcodes: map[int]OpcodeFunc{
+		Input:  make(chan int, 1),
+		Output: make(chan int, 1),
+		opcodes: [100]interface{}{
 			1:  AddOpcode,
 			2:  MulOpcode,
 			3:  ReadOpCode,
@@ -38,23 +34,31 @@ func NewVirtualMachine(memory []int) *VirtualMachine {
 	}
 }
 
+func (vm *VirtualMachine) arg(pos int) int {
+	mask := uint8(1) << uint8(pos)
+	if vm.modes&mask == mask {
+		return vm.Memory[vm.ip+1+pos]
+	} else {
+		return vm.Memory[vm.Memory[vm.ip+1+pos]]
+	}
+}
+
 // Run repeatedly executes instructions until the VM halts.
 func (vm *VirtualMachine) Run() {
 	for !vm.Halted {
 		instruction := vm.Memory[vm.ip]
 		opcode := instruction % 100
 
-		vm.opcodes[opcode](vm, func(pos int) int {
-			mode := (instruction / int(math.Pow10(2+pos))) % 10
-			switch mode {
-			case 0:
-				return vm.Memory[vm.Memory[vm.ip+1+pos]]
-			case 1:
-				return vm.Memory[vm.ip+1+pos]
-			default:
-				panic(fmt.Sprintf("Unknown parameter mode: %d", mode))
+		vm.modes = 0
+		mask := uint8(1)
+		for i := instruction / 100; i > 0; i /= 10 {
+			if i%10 == 1 {
+				vm.modes = vm.modes | mask
 			}
-		})
+			mask = mask << 1
+		}
+
+		vm.opcodes[opcode].(OpcodeFunc)(vm)
 	}
 	close(vm.Input)
 	close(vm.Output)
@@ -65,6 +69,6 @@ func (vm *VirtualMachine) Reset(memory []int) {
 	copy(vm.Memory, memory)
 	vm.ip = 0
 	vm.Halted = false
-	vm.Input = make(chan int, 100)
-	vm.Output = make(chan int, 100)
+	vm.Input = make(chan int, 1)
+	vm.Output = make(chan int, 1)
 }
