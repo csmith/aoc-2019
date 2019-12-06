@@ -9,5 +9,6 @@ if [ -d "$1" ]; then
         go get -d -v ./... >/dev/null
         go install ./... >/dev/null
     fi
+    export GOGC=off
     time "${GOPATH}/bin/$1"
 fi
