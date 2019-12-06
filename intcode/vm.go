@@ -13,13 +13,11 @@ type VirtualMachine struct {
 
 // NewVirtualMachine creates a new IntCode virtual machine, initialised
 // to the given slice of memory.
-func NewVirtualMachine(memory []int) *VirtualMachine {
-	return &VirtualMachine{
+func NewVirtualMachine(memory []int, hasIO bool) *VirtualMachine {
+	vm := &VirtualMachine{
 		ip:     0,
 		Memory: memory,
 		Halted: false,
-		Input:  make(chan int, 1),
-		Output: make(chan int, 1),
 		opcodes: [100]interface{}{
 			1:  AddOpcode,
 			2:  MulOpcode,
@@ -32,6 +30,13 @@ func NewVirtualMachine(memory []int) *VirtualMachine {
 			99: HaltOpcode,
 		},
 	}
+
+	if hasIO {
+		vm.Input = make(chan int, 1)
+		vm.Output = make(chan int, 1)
+	}
+
+	return vm
 }
 
 func (vm *VirtualMachine) arg(pos int) int {
@@ -60,8 +65,10 @@ func (vm *VirtualMachine) Run() {
 
 		vm.opcodes[opcode].(OpcodeFunc)(vm)
 	}
-	close(vm.Input)
-	close(vm.Output)
+	if vm.Input != nil {
+		close(vm.Input)
+		close(vm.Output)
+	}
 }
 
 // Reset resets the memory to the given slice, and all other state back to its original value.
@@ -69,6 +76,8 @@ func (vm *VirtualMachine) Reset(memory []int) {
 	copy(vm.Memory, memory)
 	vm.ip = 0
 	vm.Halted = false
-	vm.Input = make(chan int, 1)
-	vm.Output = make(chan int, 1)
+	if vm.Input != nil {
+		vm.Input = make(chan int, 1)
+		vm.Output = make(chan int, 1)
+	}
 }

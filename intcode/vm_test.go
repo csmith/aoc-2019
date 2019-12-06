@@ -17,7 +17,7 @@ func TestDayTwoSamples(t *testing.T) {
 	}
 
 	for _, table := range tables {
-		vm := NewVirtualMachine(table.given)
+		vm := NewVirtualMachine(table.given, false)
 		vm.Run()
 		if !reflect.DeepEqual(table.expected, vm.Memory) {
 			t.Errorf("Evaluation of %v was incorrect, got: %v, want: %v.", table.given, vm.Memory, table.expected)
@@ -48,7 +48,7 @@ func TestDayFiveSamples(t *testing.T) {
 	}
 
 	for _, table := range tables {
-		vm := NewVirtualMachine(table.given)
+		vm := NewVirtualMachine(table.given, true)
 
 		for _, v := range table.input {
 			vm.Input <- v
