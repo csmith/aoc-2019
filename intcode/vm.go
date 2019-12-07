@@ -2,13 +2,12 @@ package intcode
 
 // VirtualMachine is an IntCode virtual machine.
 type VirtualMachine struct {
-	ip      int
-	modes   uint8
-	opcodes [100]interface{}
-	Memory  []int
-	Halted  bool
-	Input   chan int
-	Output  chan int
+	ip     int
+	modes  uint8
+	Memory []int
+	Halted bool
+	Input  chan int
+	Output chan int
 }
 
 // NewVirtualMachine creates a new IntCode virtual machine, initialised
@@ -18,17 +17,6 @@ func NewVirtualMachine(memory []int, hasIO bool) *VirtualMachine {
 		ip:     0,
 		Memory: memory,
 		Halted: false,
-		opcodes: [100]interface{}{
-			1:  AddOpcode,
-			2:  MulOpcode,
-			3:  ReadOpCode,
-			4:  WriteOpCode,
-			5:  JumpIfTrueOpCode,
-			6:  JumpIfFalseOpCode,
-			7:  LessThanOpCode,
-			8:  EqualsOpCode,
-			99: HaltOpcode,
-		},
 	}
 
 	if hasIO {
@@ -63,7 +51,7 @@ func (vm *VirtualMachine) Run() {
 			mask = mask << 1
 		}
 
-		vm.opcodes[opcode].(OpcodeFunc)(vm)
+		opcodes[opcode](vm)
 	}
 	if vm.Output != nil {
 		close(vm.Output)
