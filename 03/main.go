@@ -7,81 +7,85 @@ import (
 	"strings"
 )
 
-var directions = map[byte]common.Point{
-	'L': {X: -1, Y: 0},
-	'R': {X: +1, Y: 0},
-	'U': {X: 0, Y: -1},
-	'D': {X: 0, Y: +1},
+type line struct {
+	from  int64
+	to    int64
+	perp  int64
+	steps int64
 }
 
-// buildMap constructs a map of points that one or more wires hit, to a slice
-// of ints representing the number of steps each wire takes to reach that point.
-// The number of steps is 0 if the point is the origin or if the wire doesn't
-// reach that point.
-func buildMap(origin common.Point, wires []string) map[common.Point][]int64 {
-	points := make(map[common.Point][]int64, 1000000)
+// readWire reads the instructions for a wire and populates the given slices with the horizontal and vertical lines
+// that make up the wire's path.
+func readWire(wire string, horizontal *[]line, vertical *[]line) {
+	moves := strings.Split(wire, ",")
+	x := int64(0)
+	y := int64(0)
+	steps := int64(0)
 
-	for n, wire := range wires {
-		var (
-			pos         = origin
-			steps int64 = 0
-			moves       = strings.Split(wire, ",")
-		)
-
-		for _, move := range moves {
-			dir := directions[move[0]]
-			length := common.MustAtoi(move[1:])
-
-			for i := 0; i < length; i++ {
-				pos = pos.Plus(dir)
-				steps++
-
-				val, ok := points[pos]
-
-				if !ok {
-					points[pos] = make([]int64, len(wires))
-					val = points[pos]
-				}
-				val[n] = steps
-			}
+	for _, move := range moves {
+		length := int64(common.MustAtoi(move[1:]))
+		switch move[0] {
+		case 'U':
+			*vertical = append(*vertical, line{from: y, to: y - length, perp: x, steps: steps})
+			y -= length
+		case 'D':
+			*vertical = append(*vertical, line{from: y, to: y + length, perp: x, steps: steps})
+			y += length
+		case 'L':
+			*horizontal = append(*horizontal, line{from: x, to: x - length, perp: y, steps: steps})
+			x -= length
+		case 'R':
+			*horizontal = append(*horizontal, line{from: x, to: x + length, perp: y, steps: steps})
+			x += length
 		}
+		steps += length
 	}
-
-	return points
 }
 
-// combinedSteps computes the total number of steps each wire had to take, given a slice of measurements. If not all
-// wires have measurement, the second return parameter will be false.
-func combinedSteps(steps []int64) (int64, bool) {
-	var res int64 = 0
-	for _, distance := range steps {
-		if distance == 0 {
-			return 0, false
-		} else {
-			res += distance
-		}
-	}
-	return res, true
-}
-
-func traceWires() (int64, int64) {
-	wires := common.ReadFileAsStrings("03/input.txt")
-	origin := common.Point{X: 0, Y: 0}
-	points := buildMap(origin, wires)
-
+// checkCrosses checks if any of the given sets of perpendicular lines cross, and returns the
+// smallest Manhattan distance to the origin, and the smallest number of combined steps, of
+// those crosses.
+func checkCrosses(horizontal *[]line, vertical *[]line) (int64, int64) {
 	var (
 		bestDistance int64 = math.MaxInt64
 		bestSteps    int64 = math.MaxInt64
 	)
 
-	for pos, v := range points {
-		if combinedSteps, hitAll := combinedSteps(v); hitAll {
-			if distance := pos.Manhattan(origin); distance < bestDistance {
-				bestDistance = distance
+	for _, h := range *horizontal {
+		for _, v := range *vertical {
+			var steps int64 = math.MaxInt64
+			if h.from <= v.perp && v.perp <= h.to {
+				// If the horizontal line goes left-to-right
+				if v.from <= h.perp && h.perp <= v.to {
+					// If the vertical line goes top-to-bottom
+					steps = (h.steps + v.perp - h.from) + (v.steps + h.perp - v.from)
+				} else if v.to <= h.perp && h.perp <= v.from {
+					// If the vertical line goes bottom-to-top
+					steps = (h.steps + v.perp - h.from) + (v.steps + v.from - h.perp)
+				} else {
+					continue
+				}
+			} else if h.to <= v.perp && v.perp <= h.from {
+				// If the horizontal line goes right-to-left
+				if v.from <= h.perp && h.perp <= v.to {
+					// If the vertical line goes top-to-bottom
+					steps = (h.steps + h.from - v.perp) + (v.steps + h.perp - v.from)
+				} else if v.to <= h.perp && h.perp <= v.from {
+					// If the vertical line goes bottom-to-top
+					steps = (h.steps + h.from - v.perp) + (v.steps + v.from - h.perp)
+				} else {
+					continue
+				}
+			} else {
+				continue
 			}
 
-			if combinedSteps < bestSteps {
-				bestSteps = combinedSteps
+			distance := common.Abs(v.perp) + common.Abs(h.perp)
+			if distance < bestDistance {
+				bestDistance = distance
+			}
+			if steps < bestSteps {
+				bestSteps = steps
 			}
 		}
 	}
@@ -89,8 +93,33 @@ func traceWires() (int64, int64) {
 	return bestDistance, bestSteps
 }
 
+func traceWires() (int64, int64) {
+	var (
+		horiz1 []line
+		horiz2 []line
+		vert1  []line
+		vert2  []line
+	)
+
+	wires := common.ReadFileAsStrings("03/input.txt")
+	readWire(wires[0], &horiz1, &vert1)
+	readWire(wires[1], &horiz2, &vert2)
+
+	d1, s1 := checkCrosses(&horiz1, &vert2)
+	d2, s2 := checkCrosses(&horiz2, &vert1)
+	return min(d1, d2), min(s1, s2)
+}
+
 func main() {
 	part1, part2 := traceWires()
 	fmt.Println(part1)
 	fmt.Println(part2)
+}
+
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
 }
