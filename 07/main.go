@@ -12,7 +12,8 @@ func runPipeline(memoryBanks []int, program []int, ps []int, feedback bool) int 
 	for i := 0; i < len(ps); i++ {
 		memory := memoryBanks[i*len(program) : (i+1)*len(program)]
 		copy(memory, program)
-		vms[i] = intcode.NewVirtualMachine(memory, true)
+		vms[i] = intcode.NewVirtualMachine(memory)
+		vms[i].Output = make(chan int, 2)
 	}
 
 	// Link all the inputs and outputs
@@ -21,6 +22,8 @@ func runPipeline(memoryBanks []int, program []int, ps []int, feedback bool) int 
 			vm.Input = vms[i-1].Output
 		} else if feedback {
 			vm.Input = vms[len(vms)-1].Output
+		} else {
+			vm.Input = make(chan int, 2)
 		}
 	}
 

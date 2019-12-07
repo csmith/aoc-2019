@@ -39,7 +39,7 @@ func main() {
 
 	pool := &sync.Pool{
 		New: func() interface{} {
-			return intcode.NewVirtualMachine(make([]int, len(input)), false)
+			return intcode.NewVirtualMachine(make([]int, len(input)))
 		},
 	}
 

@@ -22,12 +22,15 @@ func main() {
 	memory := make([]int, len(input))
 	copy(memory, input)
 
-	vm := intcode.NewVirtualMachine(memory, true)
+	vm := intcode.NewVirtualMachine(memory)
+	vm.Input = make(chan int, 1)
+	vm.Output = make(chan int, 1)
 	vm.Input <- 1
 	go vm.Run()
 	fmt.Println(last(vm.Output))
 
 	vm.Reset(input)
+	vm.Output = make(chan int, 1)
 	vm.Input <- 5
 	go vm.Run()
 	fmt.Println(last(vm.Output))

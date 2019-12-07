@@ -10,23 +10,19 @@ type VirtualMachine struct {
 	Output chan int
 }
 
-// NewVirtualMachine creates a new IntCode virtual machine, initialised
-// to the given slice of memory.
-func NewVirtualMachine(memory []int, hasIO bool) *VirtualMachine {
+// NewVirtualMachine creates a new IntCode virtual machine, initialised to the given slice of memory.
+// The caller is responsible for initialising the VM's I/O channels if required.
+func NewVirtualMachine(memory []int) *VirtualMachine {
 	vm := &VirtualMachine{
 		ip:     0,
 		Memory: memory,
 		Halted: false,
 	}
 
-	if hasIO {
-		vm.Input = make(chan int, 1)
-		vm.Output = make(chan int, 1)
-	}
-
 	return vm
 }
 
+// arg Returns the value of the given argument for the current instruction.
 func (vm *VirtualMachine) arg(pos int) int {
 	mask := uint8(1) << uint8(pos)
 	if vm.modes&mask == mask {
@@ -63,8 +59,4 @@ func (vm *VirtualMachine) Reset(memory []int) {
 	copy(vm.Memory, memory)
 	vm.ip = 0
 	vm.Halted = false
-	if vm.Input != nil {
-		vm.Input = make(chan int, 1)
-		vm.Output = make(chan int, 1)
-	}
 }
