@@ -65,8 +65,7 @@ func (vm *VirtualMachine) Run() {
 
 		vm.opcodes[opcode].(OpcodeFunc)(vm)
 	}
-	if vm.Input != nil {
-		close(vm.Input)
+	if vm.Output != nil {
 		close(vm.Output)
 	}
 }
