@@ -2,12 +2,14 @@ package intcode
 
 // VirtualMachine is an IntCode virtual machine.
 type VirtualMachine struct {
-	ip     int
-	modes  uint8
-	Memory []int
-	Halted bool
-	Input  chan int
-	Output chan int
+	ip             int
+	rb             int
+	parameterModes uint8
+	relativeModes  uint8
+	Memory         []int
+	Halted         bool
+	Input          chan int
+	Output         chan int
 }
 
 // NewVirtualMachine creates a new IntCode virtual machine, initialised to the given slice of memory.
@@ -23,12 +25,29 @@ func NewVirtualMachine(memory []int) *VirtualMachine {
 }
 
 // arg Returns the value of the given argument for the current instruction.
-func (vm *VirtualMachine) arg(pos int) int {
+func (vm *VirtualMachine) arg(pos int) *int {
 	mask := uint8(1) << uint8(pos)
-	if vm.modes&mask == mask {
-		return vm.Memory[vm.ip+1+pos]
+	if vm.parameterModes&mask == mask {
+		// Parameter mode - the value of the argument is just treated as an int
+		if vm.ip+1+pos > cap(vm.Memory) {
+			vm.Memory = append(vm.Memory, make([]int, 1024)...)
+		}
+
+		return &vm.Memory[vm.ip+1+pos]
+	} else if vm.relativeModes&mask == mask {
+		// Relative mode - the value of the argument is treated as a memory offset from the relative base
+		if vm.ip+1+pos > cap(vm.Memory) || vm.rb+vm.Memory[vm.ip+1+pos] > cap(vm.Memory) {
+			vm.Memory = append(vm.Memory, make([]int, 1024)...)
+		}
+
+		return &vm.Memory[vm.rb+vm.Memory[vm.ip+1+pos]]
 	} else {
-		return vm.Memory[vm.Memory[vm.ip+1+pos]]
+		// Position mode - the value of the argument is treated as a memory offset from the start of the memory
+		if vm.ip+1+pos > cap(vm.Memory) || vm.Memory[vm.ip+1+pos] > cap(vm.Memory) {
+			vm.Memory = append(vm.Memory, make([]int, 1024)...)
+		}
+
+		return &vm.Memory[vm.Memory[vm.ip+1+pos]]
 	}
 }
 
@@ -38,11 +57,15 @@ func (vm *VirtualMachine) Run() {
 		instruction := vm.Memory[vm.ip]
 		opcode := instruction % 100
 
-		vm.modes = 0
+		vm.parameterModes = 0
+		vm.relativeModes = 0
 		mask := uint8(1)
 		for i := instruction / 100; i > 0; i /= 10 {
-			if i%10 == 1 {
-				vm.modes = vm.modes | mask
+			mode := i % 10
+			if mode == 1 {
+				vm.parameterModes = vm.parameterModes | mask
+			} else if mode == 2 {
+				vm.relativeModes = vm.relativeModes | mask
 			}
 			mask = mask << 1
 		}
@@ -57,6 +80,13 @@ func (vm *VirtualMachine) Run() {
 // Reset resets the memory to the given slice, and all other state back to its original value.
 func (vm *VirtualMachine) Reset(memory []int) {
 	copy(vm.Memory, memory)
+
+	// We may previously have expanded our own memory, reset that to zero.
+	for i := len(memory); i < len(vm.Memory)-1; i++ {
+		vm.Memory[i] = 0
+	}
+
 	vm.ip = 0
+	vm.rb = 0
 	vm.Halted = false
 }
