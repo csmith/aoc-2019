@@ -22,25 +22,6 @@ func buildMap(input []string) []*asteroid {
 	return res
 }
 
-func angleBetween(asteroid1, asteroid2 *asteroid) float64 {
-	if asteroid1.y == asteroid2.y {
-		if asteroid2.x > asteroid1.x {
-			return math.Pi / 2
-		} else {
-			return 3 * math.Pi / 2
-		}
-	} else {
-		angle := math.Atan(float64(asteroid2.x-asteroid1.x) / float64(asteroid1.y-asteroid2.y))
-		if asteroid1.y < asteroid2.y {
-			angle += math.Pi
-		}
-		if angle < 0 {
-			angle += math.Pi * 2
-		}
-		return angle
-	}
-}
-
 func checkAngles(asteroid1 *asteroid, others []*asteroid, countVisible bool) map[float64][]*asteroid {
 	angles := make(map[float64][]*asteroid)
 	for _, asteroid2 := range others {
@@ -48,7 +29,10 @@ func checkAngles(asteroid1 *asteroid, others []*asteroid, countVisible bool) map
 			continue
 		}
 
-		angle := angleBetween(asteroid1, asteroid2)
+		angle := math.Atan2(float64(asteroid2.x-asteroid1.x), float64(asteroid1.y-asteroid2.y))
+		if angle < 0 {
+			angle += math.Pi * 2
+		}
 
 		if len(angles[angle]) == 0 && countVisible {
 			asteroid1.visible++
