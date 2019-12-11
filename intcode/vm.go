@@ -29,21 +29,21 @@ func (vm *VirtualMachine) arg(pos int) *int {
 	mask := uint8(1) << uint8(pos)
 	if vm.parameterModes&mask == mask {
 		// Parameter mode - the value of the argument is just treated as an int
-		if vm.ip+1+pos > cap(vm.Memory) {
+		for vm.ip+1+pos > len(vm.Memory) {
 			vm.Memory = append(vm.Memory, make([]int, 1024)...)
 		}
 
 		return &vm.Memory[vm.ip+1+pos]
 	} else if vm.relativeModes&mask == mask {
 		// Relative mode - the value of the argument is treated as a memory offset from the relative base
-		if vm.ip+1+pos > cap(vm.Memory) || vm.rb+vm.Memory[vm.ip+1+pos] > cap(vm.Memory) {
+		for vm.ip+1+pos > len(vm.Memory) || vm.rb+vm.Memory[vm.ip+1+pos] > len(vm.Memory) {
 			vm.Memory = append(vm.Memory, make([]int, 1024)...)
 		}
 
 		return &vm.Memory[vm.rb+vm.Memory[vm.ip+1+pos]]
 	} else {
 		// Position mode - the value of the argument is treated as a memory offset from the start of the memory
-		if vm.ip+1+pos > cap(vm.Memory) || vm.Memory[vm.ip+1+pos] > cap(vm.Memory) {
+		for vm.ip+1+pos > len(vm.Memory) || vm.Memory[vm.ip+1+pos] > len(vm.Memory) {
 			vm.Memory = append(vm.Memory, make([]int, 1024)...)
 		}
 
