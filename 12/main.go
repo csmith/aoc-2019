@@ -72,14 +72,18 @@ func energy(channel chan []int64, moons int) int64 {
 
 // Sweeping assumptions/notes on how this mess works:
 //
-// 1) the movement of the planets will be parabolic - they'll accelerate towards each other,
+// 1) the movement of the moons will be parabolic - they'll accelerate towards each other,
 //    then gradually slow down to a complete stop and reverse path going back to the starting point.
 //    I'm not sure I can prove that's the case in general, but it does seem to hold true.
 //
-// 2) the middle of the parabola occurs after step 1000 (otherwise the code would need a fiddly bit of
+// 2) all the moons will hit the inflection point of the parabola at the same step. I think this is reasonable
+//    as each force is mirrored, so bodies accelerating towards one another will end up with the same total velocity
+//    when they cross
+//
+// 3) the middle of the parabola occurs after step 1000 (otherwise the code would need a fiddly bit of
 //    state tracking to ensure it returned a value for part 1).
 //
-// 3) because the axes are independent, they can be simulated in parallel, and their individual parabolic inflection
+// 4) because the axes are independent, they can be simulated in parallel, and their individual parabolic inflection
 //    points found. This gives us the loop count for each axis (2x the number of steps to reach the inflection point),
 //    and we can find the first time all three axis's loops intersect by finding the lowest common multiple of those
 //    three values.
@@ -88,7 +92,7 @@ func energy(channel chan []int64, moons int) int64 {
 //
 // <------------------- position on axis ------------------>
 //
-//                                                __,..--'""      |
+//                      (somewhere)               __,..--'""      |
 //                       step 1000       _,..--'""         ^      |
 //                           v   _,..-'""                start    |
 //                        _,..-'"                       vel = 0   |
