@@ -21,3 +21,26 @@ func Min(x, y int) int {
 	}
 	return y
 }
+
+// GCD finds the greatest common divisor (GCD) via Euclidean algorithm
+// Source: https://siongui.github.io/2017/06/03/go-find-lcm-by-gcd
+func GCD(a, b int64) int64 {
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+// LCM finds the Least Common Multiple (LCM) via GCD
+// Source: https://siongui.github.io/2017/06/03/go-find-lcm-by-gcd
+func LCM(a, b int64, integers ...int64) int64 {
+	result := a * b / GCD(a, b)
+
+	for i := 0; i < len(integers); i++ {
+		result = LCM(result, integers[i])
+	}
+
+	return result
+}
