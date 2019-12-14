@@ -44,36 +44,33 @@ func parseInput(file string) recipeBook {
 	return recipes
 }
 
-func (rb recipeBook) produce(target *amount, used map[chemical]int, spare map[chemical]int) {
-	recipe := rb[target.chemical]
-	needed := target.quantity
+func (rb recipeBook) produce(target chemical, quantity int, used map[chemical]int, spare map[chemical]int) {
+	recipe := rb[target]
+	needed := quantity
 
 	if recipe == nil {
-		used[target.chemical] += needed
+		used[target] += needed
 		return
 	}
 
-	free := spare[target.chemical]
+	free := spare[target]
 	if free >= needed {
-		used[target.chemical] += needed
-		spare[target.chemical] -= needed
+		used[target] += needed
+		spare[target] -= needed
 		return
 	} else {
-		used[target.chemical] += free
-		spare[target.chemical] = 0
+		used[target] += free
+		spare[target] = 0
 		needed -= free
 	}
 
 	runs := int(math.Ceil(float64(needed) / float64(recipe.produces.quantity)))
 	for _, i := range recipe.requires {
-		rb.produce(&amount{
-			chemical: i.chemical,
-			quantity: i.quantity * runs,
-		}, used, spare)
+		rb.produce(i.chemical, i.quantity*runs, used, spare)
 	}
 
-	used[target.chemical] += needed
-	spare[target.chemical] += (recipe.produces.quantity * runs) - needed
+	used[target] += needed
+	spare[target] += (recipe.produces.quantity * runs) - needed
 }
 
 func main() {
@@ -81,10 +78,7 @@ func main() {
 	used := make(map[chemical]int, len(recipes))
 	spare := make(map[chemical]int, len(recipes))
 
-	recipes.produce(&amount{
-		chemical: "FUEL",
-		quantity: 1,
-	}, used, spare)
+	recipes.produce("FUEL", 1, used, spare)
 
 	orePerFuel := used["ORE"]
 	println(used["ORE"])
@@ -92,10 +86,7 @@ func main() {
 	last := 0
 	for used["ORE"] < 1000000000000 {
 		last = used["FUEL"]
-		recipes.produce(&amount{
-			chemical: "FUEL",
-			quantity: common.Max(1, (1000000000000-used["ORE"])/orePerFuel),
-		}, used, spare)
+		recipes.produce("FUEL", common.Max(1, (1000000000000-used["ORE"])/orePerFuel), used, spare)
 	}
 
 	println(last)
