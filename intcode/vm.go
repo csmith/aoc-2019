@@ -24,6 +24,23 @@ func NewVirtualMachine(memory []int) *VirtualMachine {
 	return vm
 }
 
+// Clone returns a deep copy of this VM, with newly allocated memory and I/O channels.
+func (vm *VirtualMachine) Clone() *VirtualMachine {
+	memory := make([]int, len(vm.Memory))
+	copy(memory, vm.Memory)
+
+	return &VirtualMachine{
+		ip:             vm.ip,
+		rb:             vm.rb,
+		parameterModes: vm.parameterModes,
+		relativeModes:  vm.relativeModes,
+		Memory:         memory,
+		Halted:         vm.Halted,
+		Input:          make(chan int, 1),
+		Output:         make(chan int, 1),
+	}
+}
+
 // arg Returns the value of the given argument for the current instruction.
 func (vm *VirtualMachine) arg(pos int) *int {
 	mask := uint8(1) << uint8(pos)
