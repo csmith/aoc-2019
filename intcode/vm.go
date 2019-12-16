@@ -1,15 +1,21 @@
 package intcode
 
+type parameterMode int
+
+const (
+	position  parameterMode = 0
+	immediate parameterMode = 1
+	relative  parameterMode = 2
+)
+
 // VirtualMachine is an IntCode virtual machine.
 type VirtualMachine struct {
-	ip             int
-	rb             int
-	parameterModes uint8
-	relativeModes  uint8
-	Memory         []int
-	Halted         bool
-	Input          chan int
-	Output         chan int
+	ip     int
+	rb     int
+	Memory []int
+	Halted bool
+	Input  chan int
+	Output chan int
 }
 
 // NewVirtualMachine creates a new IntCode virtual machine, initialised to the given slice of memory.
@@ -30,64 +36,51 @@ func (vm *VirtualMachine) Clone() *VirtualMachine {
 	copy(memory, vm.Memory)
 
 	return &VirtualMachine{
-		ip:             vm.ip,
-		rb:             vm.rb,
-		parameterModes: vm.parameterModes,
-		relativeModes:  vm.relativeModes,
-		Memory:         memory,
-		Halted:         vm.Halted,
-		Input:          make(chan int, 1),
-		Output:         make(chan int, 1),
-	}
-}
-
-// arg Returns the value of the given argument for the current instruction.
-func (vm *VirtualMachine) arg(pos int) *int {
-	mask := uint8(1) << uint8(pos)
-	if vm.parameterModes&mask == mask {
-		// Parameter mode - the value of the argument is just treated as an int
-		for vm.ip+1+pos > len(vm.Memory) {
-			vm.Memory = append(vm.Memory, make([]int, 1024)...)
-		}
-
-		return &vm.Memory[vm.ip+1+pos]
-	} else if vm.relativeModes&mask == mask {
-		// Relative mode - the value of the argument is treated as a memory offset from the relative base
-		for vm.ip+1+pos > len(vm.Memory) || vm.rb+vm.Memory[vm.ip+1+pos] > len(vm.Memory) {
-			vm.Memory = append(vm.Memory, make([]int, 1024)...)
-		}
-
-		return &vm.Memory[vm.rb+vm.Memory[vm.ip+1+pos]]
-	} else {
-		// Position mode - the value of the argument is treated as a memory offset from the start of the memory
-		for vm.ip+1+pos > len(vm.Memory) || vm.Memory[vm.ip+1+pos] > len(vm.Memory) {
-			vm.Memory = append(vm.Memory, make([]int, 1024)...)
-		}
-
-		return &vm.Memory[vm.Memory[vm.ip+1+pos]]
+		ip:     vm.ip,
+		rb:     vm.rb,
+		Memory: memory,
+		Halted: vm.Halted,
+		Input:  make(chan int, 1),
+		Output: make(chan int, 1),
 	}
 }
 
 // Run repeatedly executes instructions until the VM halts.
 func (vm *VirtualMachine) Run() {
+	var args [3]*int
 	for !vm.Halted {
 		instruction := vm.Memory[vm.ip]
 		opcode := instruction % 100
 
-		vm.parameterModes = 0
-		vm.relativeModes = 0
-		mask := uint8(1)
-		for i := instruction / 100; i > 0; i /= 10 {
-			mode := i % 10
-			if mode == 1 {
-				vm.parameterModes = vm.parameterModes | mask
-			} else if mode == 2 {
-				vm.relativeModes = vm.relativeModes | mask
+		param := instruction / 100
+		for i := 0; i < opcodeArity[opcode]; i++ {
+
+			switch parameterMode(param % 10) {
+
+			// The argument is the actual value
+			case immediate:
+				args[i] = &vm.Memory[vm.ip+1+i]
+
+			// The argument is a memory reference
+			case position:
+				for vm.Memory[vm.ip+1+i] >= len(vm.Memory) {
+					vm.Memory = append(vm.Memory, make([]int, 128)...)
+				}
+				args[i] = &vm.Memory[vm.Memory[vm.ip+1+i]]
+
+			// The argument is a memory reference offset by the relative base
+			case relative:
+				for vm.rb+vm.Memory[vm.ip+1+i] >= len(vm.Memory) {
+					vm.Memory = append(vm.Memory, make([]int, 128)...)
+				}
+				args[i] = &vm.Memory[vm.rb+vm.Memory[vm.ip+1+i]]
+
 			}
-			mask = mask << 1
+
+			param /= 10
 		}
 
-		opcodes[opcode](vm)
+		opcodes[opcode](vm, args[0], args[1], args[2])
 	}
 	if vm.Output != nil {
 		close(vm.Output)
