@@ -17,7 +17,7 @@ func Benchmark_Part1(b *testing.B) {
 		vm.Output = make(chan int, 1)
 		vm.Input <- 1
 		go vm.Run()
-		_ = last(vm.Output)
+		_ = common.Last(vm.Output)
 	}
 }
 
@@ -32,6 +32,6 @@ func Benchmark_Part2(b *testing.B) {
 		vm.Output = make(chan int, 1)
 		vm.Input <- 2
 		go vm.Run()
-		_ = last(vm.Output)
+		_ = common.Last(vm.Output)
 	}
 }
