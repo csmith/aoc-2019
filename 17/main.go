@@ -5,7 +5,6 @@ import (
 	"github.com/csmith/aoc-2019/common"
 	"github.com/csmith/aoc-2019/intcode"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -65,53 +64,6 @@ func follow(picture [][]rune, x, y int, direction rune) (int, int, int) {
 	return x, y, length
 }
 
-func compactPass(movement string) string {
-	start := 0
-	for movement[start] == 'A' || movement[start] == 'B' {
-		start += 2
-	}
-
-	end := start + 4
-	for movement[end] != ',' {
-		end++
-	}
-
-	count := strings.Count(movement, movement[start:end])
-
-	for {
-		newEnd := end + 1
-		for movement[newEnd] != ',' {
-			newEnd++
-		}
-		if movement[newEnd-1] == 'A' || movement[newEnd-1] == 'B' {
-			break
-		}
-
-		newCount := strings.Count(movement, movement[start:end])
-		if newCount == count {
-			end = newEnd
-		} else {
-			break
-		}
-	}
-
-	return movement[start:end]
-}
-
-func compact(movement string) (main, a, b, c string) {
-	main = movement
-
-	a = compactPass(main)
-	main = strings.ReplaceAll(main, a, "A")
-
-	b = compactPass(main)
-	main = strings.ReplaceAll(main, b, "B")
-
-	c = compactPass(main)
-	main = strings.ReplaceAll(main, c, "C")
-	return
-}
-
 func readPicture(memory []int) [][]rune {
 	vm := intcode.NewVirtualMachine(memory)
 	vm.Input = make(chan int, 1)
@@ -158,11 +110,11 @@ func analysePicture(picture [][]rune) (sum int, robot rune, robotX, robotY int) 
 	return
 }
 
-func buildRoute(picture [][]rune, robot rune, robotX, robotY int) string {
+func buildRoute(picture [][]rune, robot rune, robotX, robotY int) []string {
 	var (
-		length       int
-		turn         rune
-		routeBuilder strings.Builder
+		length int
+		turn   rune
+		res    []string
 	)
 	for {
 		robot, turn = next(picture, robotX, robotY, robot)
@@ -172,13 +124,10 @@ func buildRoute(picture [][]rune, robot rune, robotX, robotY int) string {
 			break
 		}
 
-		if routeBuilder.Len() > 0 {
-			routeBuilder.WriteRune(',')
-		}
-		routeBuilder.WriteRune(turn)
-		routeBuilder.WriteString(strconv.Itoa(length))
+		res = append(res, string(turn))
+		res = append(res, strconv.Itoa(length))
 	}
-	return routeBuilder.String()
+	return res
 }
 
 func calculateDust(input []int, m, a, b, c string) int {
@@ -192,9 +141,6 @@ func calculateDust(input []int, m, a, b, c string) int {
 		for _, line := range []string{m, a, b, c, "n"} {
 			for _, r := range line {
 				vm.Input <- int(r)
-				if r == 'L' || r == 'R' {
-					vm.Input <- ','
-				}
 			}
 			vm.Input <- '\n'
 		}
@@ -211,7 +157,7 @@ func main() {
 	picture := readPicture(input)
 	sum, robot, robotX, robotY := analysePicture(picture)
 	route := buildRoute(picture, robot, robotX, robotY)
-	m, a, b, c := compact(route)
+	m, a, b, c := compress(route)
 	dust := calculateDust(memory, m, a, b, c)
 
 	fmt.Println(sum)
