@@ -45,13 +45,26 @@ func mulOpcode(vm *VirtualMachine, arg1, arg2, arg3 *int) {
 
 // readOpCode reads a value from the input stream and stores it at the memory address given by arg 1.
 func readOpCode(vm *VirtualMachine, arg1, _, _ *int) {
-	*arg1 = <-vm.Input
+	if vm.inputIndex < len(vm.input) {
+		// Read from pre-provided values
+		*arg1 = vm.input[vm.inputIndex]
+		vm.inputIndex++
+	} else {
+		*arg1 = <-vm.Input
+	}
+
 	vm.ip += 2
 }
 
 // writeOpCode writes the value specified by the first argument to the output stream.
 func writeOpCode(vm *VirtualMachine, arg1, _, _ *int) {
-	vm.Output <- *arg1
+	if len(vm.input) > 0 {
+		// Running to get the value of some input, provide the output and halt
+		vm.output = arg1
+		vm.Halted = true
+	} else {
+		vm.Output <- *arg1
+	}
 	vm.ip += 2
 }
 

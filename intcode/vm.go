@@ -10,12 +10,15 @@ const (
 
 // VirtualMachine is an IntCode virtual machine.
 type VirtualMachine struct {
-	ip     int
-	rb     int
-	Memory []int
-	Halted bool
-	Input  chan int
-	Output chan int
+	ip         int
+	rb         int
+	Memory     []int
+	Halted     bool
+	Input      chan int
+	Output     chan int
+	input      []int
+	inputIndex int
+	output     *int
 }
 
 // NewVirtualMachine creates a new IntCode virtual machine, initialised to the given slice of memory.
@@ -36,13 +39,37 @@ func (vm *VirtualMachine) Clone() *VirtualMachine {
 	copy(memory, vm.Memory)
 
 	return &VirtualMachine{
-		ip:     vm.ip,
-		rb:     vm.rb,
-		Memory: memory,
-		Halted: vm.Halted,
-		Input:  make(chan int, 1),
-		Output: make(chan int, 1),
+		ip:         vm.ip,
+		rb:         vm.rb,
+		Memory:     memory,
+		Halted:     vm.Halted,
+		Input:      make(chan int, 1),
+		Output:     make(chan int, 1),
+		input:      vm.input,
+		inputIndex: vm.inputIndex,
+		output:     vm.output,
 	}
+}
+
+// Run repeatedly executes instructions until the VM produces output or halts.
+//
+// The given values will be provided as input whenever a read opcode is executed;
+// any further reads before an output will fallback to reading from the Input
+// channel.
+//
+// If the machine halts instead of outputting a number, this function will return
+// nil.
+func (vm *VirtualMachine) RunForInput(input ...int) *int {
+	vm.inputIndex = 0
+	vm.input = input
+	vm.Run()
+
+	// Reset the halted state so we can carry on running, if required
+	if vm.output != nil {
+		vm.Halted = false
+	}
+
+	return vm.output
 }
 
 // Run repeatedly executes instructions until the VM halts.
@@ -98,5 +125,8 @@ func (vm *VirtualMachine) Reset(memory []int) {
 
 	vm.ip = 0
 	vm.rb = 0
+	vm.input = nil
+	vm.inputIndex = 0
+	vm.output = nil
 	vm.Halted = false
 }

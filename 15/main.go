@@ -67,9 +67,7 @@ func explore(vm *intcode.VirtualMachine) (grid [100][100]tile, stepsToOxygen int
 				}
 
 				vmp := s.vm.Clone()
-				go vmp.Run()
-				vmp.Input <- int(d)
-				state := <-vmp.Output
+				state := *vmp.RunForInput(int(d))
 
 				if state == 0 {
 					grid[yp][xp] = wall
