@@ -17,6 +17,7 @@ func main() {
 
 	sum := 0
 	lastStart := 0
+	lastWidth := 0
 	for y := 0; ; y++ {
 		first := 0
 
@@ -25,6 +26,9 @@ func main() {
 			if *vm.RunForInput(x, y) == 1 {
 				if first == 0 {
 					first = x
+					if y > 50 {
+						x += lastWidth
+					}
 				}
 				if x < 50 && y < 50 {
 					sum++
@@ -45,6 +49,8 @@ func main() {
 					endPositions[endIndex] = x
 					endIndex = (endIndex + 1) % shipSize
 				}
+
+				lastWidth = x - first - 1
 				break
 			}
 		}
